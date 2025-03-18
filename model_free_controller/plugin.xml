@@ -1,0 +1,10 @@
+<library path="lib/libmodel_free_controller">
+  <class name="model_free_controller/ModelFreeController" 
+         type="model_free_controller::ModelFreeController" 
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+         A model free controller.
+    </description>
+  </class>
+</library>
+

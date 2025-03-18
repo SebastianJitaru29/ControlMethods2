@@ -1,0 +1,13 @@
+<launch>
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+    <param name="publish_frequency" type="double" value="50.0"/>
+  </node>
+
+  <rosparam file="$(find pd_grav_controller)/config/pd_grav_control.yaml" command="load"/>
+
+  <node name="controller_manager" pkg="controller_manager" type="controller_manager" respawn="false" output="screen"
+        args="spawn pd_grav_controller joint_state_publisher
+              panda_joint1_effort_controller panda_joint2_effort_controller panda_joint3_effort_controller panda_joint4_effort_controller panda_joint5_effort_controller panda_joint6_effort_controller panda_joint7_effort_controller">
+  </node>
+
+</launch>

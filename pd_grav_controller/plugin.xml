@@ -1,0 +1,9 @@
+<library path="lib/libpd_grav_controller">
+  <class name="pd_grav_controller/PDGravController" 
+         type="pd_grav_controller::PDGravController" 
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+      A controller that executes a short motion based on joint velocities to demonstrate correct usage
+    </description>
+  </class>
+</library>
