@@ -4,6 +4,12 @@ import torch.nn as nn
 from trilnetwork import TrilNetwork
 from neuralnetwork import NeuralNetwork
 
+"""
+Check if there is double work in the network.
+Write down difference between our model and the paper.
+
+Interaction with the environment -> RL.
+"""
 
 class LagrangianNetwork(nn.Module):
 
