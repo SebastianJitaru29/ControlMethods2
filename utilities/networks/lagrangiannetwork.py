@@ -9,6 +9,9 @@ Check if there is double work in the network.
 Write down difference between our model and the paper.
 
 Interaction with the environment -> RL.
+Block Diagram in Presentation & Report.
+Validate model based controller 1 plot for each joint pd stabilization (With Random motion)
+Plot deviation from truth on model free. 
 """
 
 class LagrangianNetwork(nn.Module):
