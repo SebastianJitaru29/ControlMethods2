@@ -7,46 +7,84 @@ import torch
 from torch.nn import MSELoss
 from torch.optim import AdamW
 
+import numpy as np
+import matplotlib.pyplot as plt
+
 BASE_PATH = '/media/student19/73D136FD4E0A3586/datasets/panda_trajectories'
-#BASE_PATH = '/media/mattias/73D136FD4E0A3586/datasets/panda_trajectories'
+# BASE_PATH = '/media/mattias/73D136FD4E0A3586/datasets/panda_trajectories'
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+loss_hold = MSELoss()
+
+def loss_func_split(x, y):
+    loss_one = loss_hold(x[:, 0], y[:, 0])
+    loss_two = loss_hold(x[:, 1], y[:, 1])
+    return loss_one + loss_two
 
 def run():
     print('DEVICE: ' + DEVICE)
     lnn = LagrangianNetwork(device=DEVICE)
     dl_train, dl_val = get_dataloaders(
         [f'{BASE_PATH}/traj_0', f'{BASE_PATH}/traj_1', f'{BASE_PATH}/traj_2'],
-        [5, 15],
         64,
+        1,
     )
+
     trainer = ModelTrainer(
-        loss_func=MSELoss(),
+        loss_func=loss_func_split,
         acc_func=MSELoss(),
         optim_class=AdamW,
-        learning_rate=7.5e-4,
+        learning_rate=5e-4,
         device=DEVICE,
         dl_train=dl_train,
         dl_val=dl_val,
     )
 
-    lnn = trainer(lnn, 25)
+    lnn = trainer(lnn, 20)
 
-    for x, y in dl_val:
-        x = x[0][0].unsqueeze(0).to(DEVICE), \
-            x[1][0].unsqueeze(0).to(DEVICE), \
-            x[2][0].unsqueeze(0).to(DEVICE)
-        y = y[0].unsqueeze(0).to(DEVICE)
+    output = np.zeros((96, 2, 7))
+    targets = np.zeros((96, 2, 7))
 
-        out = lnn(*x)
+    lnn.eval()
+    with torch.no_grad():
+        for idx, data in enumerate(dl_val):
 
-        print('------')
-        print(out)
-        print('------')
-        print(y)
-        print('------')
-        print(f'Loss: {MSELoss()(out, y)}')
-        break
+            if idx == 96:
+                break
+            x, y = data
+            x = x[0][0].unsqueeze(0).to(DEVICE), \
+                x[1][0].unsqueeze(0).to(DEVICE), \
+                x[2][0].unsqueeze(0).to(DEVICE)
+            y = y[0].unsqueeze(0).to(DEVICE)
 
+            out = lnn(*x)
+
+            output[idx] = out.detach().cpu().numpy()
+            targets[idx] = y.detach().cpu().numpy()
+
+            """
+            print('------')
+            print(out)
+            print('------')
+            print(y)
+            print('------')
+            print(f'Loss: {MSELoss()(out, y)}')"
+            """
+        
+    fig, ax = plt.subplots(2, 7, figsize=(16, 4))
+
+    for row in range(2):
+        name = 'position' if row == 0 else 'velocity'
+        lims = [-1, 1] if row == 0 else [-5, 5]
+        for col in range(7):
+            ax[row][col].scatter(targets[:, row, col], output[:, row, col])
+            ax[row][col].set_xlabel(f'target {name} (rad)')
+            ax[row][col].set_ylabel(f'predicted {name} (rad)')
+            ax[row][col].set_xlim(lims)
+            ax[row][col].set_ylim(lims)
+            ax[row][col].plot(lims, lims, color='red')
+            
+    plt.show()
 
 
 if __name__ == '__main__':

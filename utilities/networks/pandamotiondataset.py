@@ -5,7 +5,7 @@ import numpy as np
 from typing import Union,List, Tuple
 
 
-def get_dataloaders(datadirs, steps, batch_size, train_split=0.8):
+def get_dataloaders(datadirs, batch_size, steps=1 ,train_split=0.8):
     dataset = PandaMotionDataset(datadirs, steps)
     
     train_len = (int)(len(dataset) * train_split)
@@ -19,7 +19,7 @@ def get_dataloaders(datadirs, steps, batch_size, train_split=0.8):
     val_set = PandaMotionDataset(datadirs, steps, val_index)
 
     return DataLoader(train_set, batch_size, True), \
-           DataLoader(val_set, batch_size, False)
+           DataLoader(val_set, batch_size, True)
 
 
 class PandaMotionDataset(Dataset):
@@ -39,13 +39,7 @@ class PandaMotionDataset(Dataset):
         The rows in one trajectory corresp6/datasets/panda_trajectoriesond to the same observations.
 
         TODO:
-        - read different trajectories
-        - read files in trajectories
-        - obtain datapoints
-        - obtain total amount of datapoints
-        - train and validation split
-        - normalization?
-        - 
+        - normalization
         """
         self.index_mapping = index_mapping
 
@@ -84,11 +78,16 @@ class PandaMotionDataset(Dataset):
         q = self._get_joints(dfs['pos'], idx)
         q_dot = self._get_joints(dfs['vel'], idx)
 
+        q = q / torch.pi
+        q_dot = q_dot / (2 * torch.pi)
         data_src = torch.stack((q, q_dot))
 
         q_next = self._get_joints(dfs['pos'], idx_next)
         q_dot_next = self._get_joints(dfs['vel'], idx_next)
 
+
+        q_next = q_next / torch.pi
+        q_dot_next = q_dot_next / (2 * torch.pi)
         data_target = torch.stack((q_next, q_dot_next))
 
         efforts = self._get_joints(dfs['eff'], idx)

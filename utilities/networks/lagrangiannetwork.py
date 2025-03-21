@@ -4,15 +4,6 @@ import torch.nn as nn
 from trilnetwork import TrilNetwork
 from neuralnetwork import NeuralNetwork
 
-"""
-Check if there is double work in the network.
-Write down difference between our model and the paper.
-
-Interaction with the environment -> RL.
-Block Diagram in Presentation & Report.
-Validate model based controller 1 plot for each joint pd stabilization (With Random motion)
-Plot deviation from truth on model free. 
-"""
 
 class LagrangianNetwork(nn.Module):
 
@@ -27,15 +18,15 @@ class LagrangianNetwork(nn.Module):
         super(LagrangianNetwork, self).__init__()
         print(device)
 
-        self.network_mass = TrilNetwork(7, 7, [256, 256], device=device)
-        self.network_dissipation = TrilNetwork(7, 7, [256, 256], device=device)
+        self.network_mass = TrilNetwork(7, 7, [128, 128], device=device)
+        self.network_dissipation = TrilNetwork(7, 7, [128, 128], device=device)
 
         # TODO should this be 
         self.network_ep = NeuralNetwork(7, 7, [128, 128])
         # network_action = NeuralNetwork(2, [7, 7], [256, 256])
 
         # TODO not an actual part of the proposed architecture
-        self.network_coriolis = NeuralNetwork(14, [7, 7], [256, 256])
+        self.network_coriolis = NeuralNetwork(14, [7, 7], [128, 128])
 
         self.lagrangian = lagrangian if lagrangian is not None \
                                      else self.arm_lagrangian
@@ -80,10 +71,13 @@ class LagrangianNetwork(nn.Module):
         ).squeeze(2)
         
         q_dot_hat = self.integrator(q_dot, q_dotdot_hat, d_time)
-        q_hat = self.integrator(q, q_dot_hat, d_time)
+        q_hat = self.integrator(q, (q_dot_hat + q_dot) / 2, d_time)
         
         return torch.stack((q_hat, q_dot_hat), dim=1)
     
+
+    # TODO acceleration at next time step, integrate
+    #      towards that. How to know acc now?
     @staticmethod
     def base_integrator(x, x_dot, d_time):
         """Returns q_dot_hat t+1 based on..."""
@@ -91,7 +85,6 @@ class LagrangianNetwork(nn.Module):
         # TODO add more proper integrator
         
         return x_hat
-    
     
     @staticmethod
     def arm_lagrangian(mass_q, coriolis, energy_p,

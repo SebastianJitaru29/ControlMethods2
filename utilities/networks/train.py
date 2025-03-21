@@ -31,8 +31,8 @@ class ModelTrainer():
     ):
         """"""
 
-        self.loss_func = loss_func.to(device)
-        self.acc_func = acc_func.to(device)
+        self.loss_func = loss_func#.to(device)
+        self.acc_func = acc_func#.to(device)
         
         self.optim_class = optim_class
         self.optimizer = None
@@ -114,7 +114,6 @@ class ModelTrainer():
             print(f'---TESTING---')
             print(f'loss: {loss_test} - acc: {acc_test}')
 
-        
         # TODO save best model
         return model
 
