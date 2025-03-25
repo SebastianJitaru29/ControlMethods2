@@ -39,6 +39,8 @@ class ModelFreeController : public controller_interface::MultiInterfaceControlle
   std::unique_ptr<franka_hw::FrankaModelHandle> model_handle_;
   std::vector<hardware_interface::JointHandle> joint_handles_;
 
+  ros::Publisher torque_pub_;
+
   Eigen::Vector3d position_d_;
   Eigen::Quaterniond orientation_d_;
   std::mutex position_and_orientation_d_target_mutex_;
@@ -55,4 +57,4 @@ class ModelFreeController : public controller_interface::MultiInterfaceControlle
   void jointPoseCallback(const robot_msgs::JointPoseStampedConstPtr& msg);
 };
 
-}  // namespace pd_grav_controller
+}  // namespace model_free_controller

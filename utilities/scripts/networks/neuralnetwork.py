@@ -27,6 +27,7 @@ class NeuralNetwork(nn.Module):
             hidden: Union[int, List[int]],
             *_,
             leaky_alpha=0.05,
+            device="cpu",
         ):
         """"""
         super(NeuralNetwork, self).__init__()
@@ -38,6 +39,8 @@ class NeuralNetwork(nn.Module):
 
         self.layers = []
         self.out = None
+
+        self.device = device
 
         if isinstance(hidden, int):
             self._create_network_single(input_size, hidden, output_size)
@@ -53,26 +56,26 @@ class NeuralNetwork(nn.Module):
 
         x = self.out(x)
 
-        return x
+        return x.double()
     
     def _create_network_single(self, n_in: int, n_hid: int, n_out: int):
-        self.layers.append(nn.Linear(n_in, n_hid))
+        self.layers.append(nn.Linear(n_in, n_hid, device=self.device))
         if isinstance(n_out, int):
-            self.out = nn.Linear(n_hid, n_out)
+            self.out = nn.Linear(n_hid, n_out, device=self.device)
         else:
             self.out = nn.Sequential(
-                nn.Linear(n_hid, n_out[0] * n_out[1]),
-                nn.Unflatten(1, n_out)
+                nn.Linear(n_hid, n_out[0] * n_out[1], device=self.device),
+                nn.Unflatten(1, n_out),
             )
 
     def _create_network_list(self, n_in: int, hid: List[int], n_out: int):
-        self.layers.append(nn.Linear(n_in, hid[0]))
+        self.layers.append(nn.Linear(n_in, hid[0], device=self.device))
         for idx in range(1, len(hid)):
-            self.layers.append(nn.Linear(hid[idx-1], hid[idx]))
+            self.layers.append(nn.Linear(hid[idx-1], hid[idx], device=self.device))
         if isinstance(n_out, int):
-            self.out = nn.Linear(hid[-1], n_out)
+            self.out = nn.Linear(hid[-1], n_out, device=self.device)
         else:
             self.out = nn.Sequential(
-                nn.Linear(hid[-1], n_out[0] * n_out[1]),
-                nn.Unflatten(1, n_out)
+                nn.Linear(hid[-1], n_out[0] * n_out[1], device=self.device),
+                nn.Unflatten(1, n_out),
             )

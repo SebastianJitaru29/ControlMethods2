@@ -10,7 +10,7 @@ Data needed:
 
 // Copyright (c) 2023 Franka Robotics GmbH
 // Use of this source code is governed by the Apache-2.0 license, see LICENSE
-// #include <pd_grav_controller/pd_grav_controller.h>
+// #include <model_free_controller/model_free_controller.h>
 
 #include "../include/model_free_controller/model_free_controller.h"
 
@@ -25,9 +25,9 @@ Data needed:
 
 #include <franka_example_controllers/pseudo_inversion.h>
 
-namespace pd_grav_controller {
+namespace model_free_controller {
 
-bool PDGravController::init(hardware_interface::RobotHW* robot_hw,
+bool ModelFreeController::init(hardware_interface::RobotHW* robot_hw,
                                                ros::NodeHandle& node_handle) {
 
   std::cout << "Initializing robot" << std::endl;
@@ -35,18 +35,20 @@ bool PDGravController::init(hardware_interface::RobotHW* robot_hw,
   std::vector<double> cartesian_damping_vector;
 
   sub_joint_pose_ = node_handle.subscribe(
-      "/pd_grav_controller/joint_pose", 20, &PDGravController::jointPoseCallback, this,
+      "/pd_grav_controller/joint_pose", 20, &ModelFreeController::jointPoseCallback, this,
       ros::TransportHints().reliable().tcpNoDelay());
+
+  torque_pub_ = node_handle.advertise<robot_msgs::JointPoseStamped>("/model_free_controller/torques", 10);
 
   std::string arm_id;
   if (!node_handle.getParam("arm_id", arm_id)) {
-    ROS_ERROR_STREAM("PDGravController: Could not read parameter arm_id");
+    ROS_ERROR_STREAM("ModelFreeController: Could not read parameter arm_id");
     return false;
   }
   std::vector<std::string> joint_names;
   if (!node_handle.getParam("joint_names", joint_names) || joint_names.size() != 7) {
     ROS_ERROR(
-        "PDGravController: Invalid or no joint_names parameters provided, "
+        "ModelFreeController: Invalid or no joint_names parameters provided, "
         "aborting controller init!");
     return false;
   }
@@ -54,7 +56,7 @@ bool PDGravController::init(hardware_interface::RobotHW* robot_hw,
   auto* model_interface = robot_hw->get<franka_hw::FrankaModelInterface>();
   if (model_interface == nullptr) {
     ROS_ERROR_STREAM(
-        "PDGravController: Error getting model interface from hardware");
+        "ModelFreeController: Error getting model interface from hardware");
     return false;
   }
   try {
@@ -62,7 +64,7 @@ bool PDGravController::init(hardware_interface::RobotHW* robot_hw,
         model_interface->getHandle("panda_model"));
   } catch (hardware_interface::HardwareInterfaceException& ex) {
     ROS_ERROR_STREAM(
-        "PDGravController: Exception getting model handle from interface: "
+        "ModelFreeController: Exception getting model handle from interface: "
         << ex.what());
     return false;
   }
@@ -70,7 +72,7 @@ bool PDGravController::init(hardware_interface::RobotHW* robot_hw,
   auto* state_interface = robot_hw->get<franka_hw::FrankaStateInterface>();
   if (state_interface == nullptr) {
     ROS_ERROR_STREAM(
-        "PDGravController: Error getting state interface from hardware");
+        "ModelFreeController: Error getting state interface from hardware");
     return false;
   }
   try {
@@ -78,7 +80,7 @@ bool PDGravController::init(hardware_interface::RobotHW* robot_hw,
         state_interface->getHandle("panda_robot"));
   } catch (hardware_interface::HardwareInterfaceException& ex) {
     ROS_ERROR_STREAM(
-        "PDGravController: Exception getting state handle from interface: "
+        "ModelFreeController: Exception getting state handle from interface: "
         << ex.what());
     return false;
   }
@@ -86,7 +88,7 @@ bool PDGravController::init(hardware_interface::RobotHW* robot_hw,
   auto* effort_joint_interface = robot_hw->get<hardware_interface::EffortJointInterface>();
   if (effort_joint_interface == nullptr) {
     ROS_ERROR_STREAM(
-        "PDGravController: Error getting effort joint interface from hardware");
+        "ModelFreeController: Error getting effort joint interface from hardware");
     return false;
   }
 
@@ -95,20 +97,10 @@ bool PDGravController::init(hardware_interface::RobotHW* robot_hw,
       joint_handles_.push_back(effort_joint_interface->getHandle(joint_names[i]));
     } catch (const hardware_interface::HardwareInterfaceException& ex) {
       ROS_ERROR_STREAM(
-          "PDGravController: Exception getting joint handles: " << ex.what());
+          "ModelFreeController: Exception getting joint handles: " << ex.what());
       return false;
     }
   }
-
-  dynamic_reconfigure_compliance_param_node_ =
-      ros::NodeHandle(node_handle.getNamespace() + "/dynamic_reconfigure_compliance_param_node");
-
-  dynamic_server_compliance_param_ = std::make_unique<
-      dynamic_reconfigure::Server<franka_example_controllers::compliance_paramConfig>>(
-
-      dynamic_reconfigure_compliance_param_node_);
-  dynamic_server_compliance_param_->setCallback(
-      boost::bind(&PDGravController::complianceParamCallback, this, _1, _2));
 
   position_d_.setZero();
   orientation_d_.coeffs() << 0.0, 0.0, 0.0, 1.0;
@@ -122,7 +114,7 @@ bool PDGravController::init(hardware_interface::RobotHW* robot_hw,
   return true;
 }
 
-void PDGravController::starting(const ros::Time& /*time*/) {
+void ModelFreeController::starting(const ros::Time& /*time*/) {
   // compute initial velocity with jacobian and set x_attractor and q_d_nullspace
   // to initial configuration
   franka::RobotState initial_state = state_handle_->getRobotState();
@@ -144,7 +136,7 @@ void PDGravController::starting(const ros::Time& /*time*/) {
   //q_desired << 0.0, 0.5, 0, -1.5, 0, 2.5, 0;
 }
 
-void PDGravController::update(const ros::Time& /*time*/,
+void ModelFreeController::update(const ros::Time& /*time*/,
                                                 const ros::Duration& /*period*/) {
   // get state variables
   franka::RobotState robot_state = state_handle_->getRobotState();
@@ -155,6 +147,8 @@ void PDGravController::update(const ros::Time& /*time*/,
   // convert to Eigen
   Eigen::Map<Eigen::Matrix<double, 7, 1>> coriolis(coriolis_array.data());
   Eigen::Map<Eigen::Matrix<double, 6, 7>> jacobian(jacobian_array.data());
+
+  //postion and velocity obtained using the model_free controller
   Eigen::Map<Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
   Eigen::Map<Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
 
@@ -180,13 +174,24 @@ void PDGravController::update(const ros::Time& /*time*/,
  
   // TODO subtract gravity from final torques to get true effort?
 
+  robot_msgs::JointPoseStamped msg;
+  msg.pose.j1 = u_before_grav[0];
+  msg.pose.j2 = u_before_grav[1];
+  msg.pose.j3 = u_before_grav[2];
+  msg.pose.j4 = u_before_grav[3];
+  msg.pose.j5 = u_before_grav[4];
+  msg.pose.j6 = u_before_grav[5];
+  msg.pose.j7 = u_before_grav[6];
+
+  torque_pub_.publish(msg);
+
   for (size_t i = 0; i < 7; ++i) {
-    joint_handles_[i].setCommand(-gravity[i]);
+    joint_handles_[i].setCommand(u_before_grav[i]-gravity[i]);
   }
   // TODO add gravity compensation
 }
 
-void PDGravController::jointPoseCallback(const robot_msgs::JointPoseStampedConstPtr& msg)
+void ModelFreeController::jointPoseCallback(const robot_msgs::JointPoseStampedConstPtr& msg)
 {
   std::lock_guard<std::mutex> position_d_target_mutex_lock(
     position_and_orientation_d_target_mutex_);
@@ -195,7 +200,7 @@ void PDGravController::jointPoseCallback(const robot_msgs::JointPoseStampedConst
   // std::cout << "Desired angles: " << q_desired << std::endl;
 }
 
-}  // namespace pd_grav_controller
+}  // namespace model_free_controller
 
-PLUGINLIB_EXPORT_CLASS(pd_grav_controller::PDGravController,
+PLUGINLIB_EXPORT_CLASS(model_free_controller::ModelFreeController,
                        controller_interface::ControllerBase)

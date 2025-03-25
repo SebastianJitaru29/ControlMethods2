@@ -128,7 +128,7 @@ include_directories(
 )
 
 ## Declare a C++ library
-add_library(model_free_controller_lib
+add_library(model_free_controller
   src/model_free_controller.cpp
 )
 

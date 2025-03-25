@@ -46,13 +46,14 @@ class TrilNetwork(nn.Module):
         self.layers = []
         self.out = None
 
+        self.device = device
+
         if isinstance(hidden, int):
             self._create_network_single(input_size, hidden, output_size)
         else:
             self._create_network_list(input_size, hidden, output_size)
 
         self.layers = nn.ModuleList(self.layers)
-        self.device = device
 
     def forward(self, x):
         """"""
@@ -67,20 +68,20 @@ class TrilNetwork(nn.Module):
         # The diagonal activation is performend over the diagonal
         mat = torch.zeros((x.shape[0], self.matrix_dim, self.matrix_dim),
                           dtype=torch.float64, device=self.device)
-        mat[:, self.tril_indc[0], self.tril_indc[1]] = x
+        mat[:, self.tril_indc[0], self.tril_indc[1]] = x.to(torch.float64)
         mat = torch.where(self.mask, self.act_diag(mat)+self.eps, mat).double()
 
         return mat
     
     def _create_network_single(self, n_in: int, n_hid: int, n_out: int):
-        self.layers.append(nn.Linear(n_in, n_hid))
-        self.out = nn.Linear(n_hid, n_out)
+        self.layers.append(nn.Linear(n_in, n_hid, device=self.device))
+        self.out = nn.Linear(n_hid, n_out, device=self.device)
 
     def _create_network_list(self, n_in: int, hid: List[int], n_out: int):
-        self.layers.append(nn.Linear(n_in, hid[0]))
+        self.layers.append(nn.Linear(n_in, hid[0], device=self.device))
         for idx in range(1, len(hid)):
-            self.layers.append(nn.Linear(hid[idx-1], hid[idx]))
-        self.out = nn.Linear(hid[-1], n_out)
+            self.layers.append(nn.Linear(hid[idx-1], hid[idx], device=self.device))
+        self.out = nn.Linear(hid[-1], n_out, device=self.device)
 
 
 # Some testing with lower triangular matricis

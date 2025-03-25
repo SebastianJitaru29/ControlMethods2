@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from trilnetwork import TrilNetwork
-from neuralnetwork import NeuralNetwork
+from .trilnetwork import TrilNetwork
+from .neuralnetwork import NeuralNetwork
 
 
 class LagrangianNetwork(nn.Module):
@@ -22,11 +22,11 @@ class LagrangianNetwork(nn.Module):
         self.network_dissipation = TrilNetwork(7, 7, [128, 128], device=device)
 
         # TODO should this be 
-        self.network_ep = NeuralNetwork(7, 7, [128, 128])
+        self.network_ep = NeuralNetwork(7, 7, [128, 128], device=device)
         # network_action = NeuralNetwork(2, [7, 7], [256, 256])
 
         # TODO not an actual part of the proposed architecture
-        self.network_coriolis = NeuralNetwork(14, [7, 7], [128, 128])
+        self.network_coriolis = NeuralNetwork(14, [7, 7], [128, 128], device=device)
 
         self.lagrangian = lagrangian if lagrangian is not None \
                                      else self.arm_lagrangian
@@ -61,6 +61,9 @@ class LagrangianNetwork(nn.Module):
 
         ## where do the C and G come from?
 
+        q = q.double()
+        q_dot = q_dot.double()
+
         q_dotdot_hat = self.lagrangian(
             mass_q=mass_q,
             coriolis=coriolis,
@@ -70,6 +73,7 @@ class LagrangianNetwork(nn.Module):
             torques=torques,
         ).squeeze(2)
         
+
         q_dot_hat = self.integrator(q_dot, q_dotdot_hat, d_time)
         q_hat = self.integrator(q, (q_dot_hat + q_dot) / 2, d_time)
         

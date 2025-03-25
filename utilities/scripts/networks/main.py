@@ -10,7 +10,7 @@ from torch.optim import AdamW
 import numpy as np
 import matplotlib.pyplot as plt
 
-BASE_PATH = '/media/student19/73D136FD4E0A3586/datasets/panda_trajectories'
+BASE_PATH = '/home/student19/catkin_ws/src/data'
 # BASE_PATH = '/media/mattias/73D136FD4E0A3586/datasets/panda_trajectories'
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -25,9 +25,9 @@ def run():
     print('DEVICE: ' + DEVICE)
     lnn = LagrangianNetwork(device=DEVICE)
     dl_train, dl_val = get_dataloaders(
-        [f'{BASE_PATH}/traj_0', f'{BASE_PATH}/traj_1', f'{BASE_PATH}/traj_2'],
-        64,
-        1,
+        datadirs=[f'{BASE_PATH}/traj_0', f'{BASE_PATH}/traj_1', f'{BASE_PATH}/traj_2'],
+        batch_size=64,
+        steps=1,
     )
 
     trainer = ModelTrainer(
@@ -38,6 +38,7 @@ def run():
         device=DEVICE,
         dl_train=dl_train,
         dl_val=dl_val,
+        model_dir='/home/student19/catkin_ws/src/utilities/networks/models'
     )
 
     lnn = trainer(lnn, 20)
