@@ -1,0 +1,61 @@
+Controller diagram pd_grav_controller
+Controller diagram model_free_controller
+KdKp plots
+model_free training results
+
+
+Introduction
+    - Task we want the arm to do
+    - What are we going to cover (index)
+
+Background on
+    - model_based 
+        -pd_grav_controller (gravity is already added after setcommand, but sketchy behaviour)
+        -Diagram
+    - model_free controllers
+        -Lagrangian (For now without gravity)  
+        -Diagram (of the paper network but with the new changes to it (different integrator, compute q_double_dot, V network is now gravity network and added coriolis network, they derive instead of computing))
+
+Software implementation
+    - Model based 
+        - Diagram of how the code is setup, what is comunicating with what, on what topics, and what messages are being sent
+        - Data gathering
+    - Model free based 
+        - Diagram of how the code is setup, what is comunicating with what, on what topics, and what messages are being sent
+        - Training
+
+Discussion
+    - Add gravity on Lagrangian from V network
+    - Reinforcment Learning (Future work)
+        - Goal : kick ball into target goal
+            - Minimize time for ball to reach goal
+            - Minimize effort robot needs to make
+            - Curriculum Learning  (Teach model through different steps)
+                - Step 1 Position end effector to correct pose for kicking ball into target goal
+                - Step 2 Hitting the ball
+                    - Guch that time for ball to get to goal is minimal
+                    - Follow optimal path to goal , reward bigger if angle to goal optimal
+                - Step 3 Scoring a goal
+    - Challenges faced during implementation
+        -  Setting up environment (Ros errors)
+            - We created a repository
+            - Copied pd_grav_controller
+            - Set up needed files for build, cmkae, package.xml, plugin.xml
+            - Load the new controller (using pd_grav_controller  as example), source terminal every time
+            - Changes in init, starting, and update functions of the innitial controller
+                - in init function variable innitalization (kp, kd, q, qdot, innitial pose (starting)) 
+                - in update compute next values
+            - program move_joints in jointspace
+
+            - model_free 
+                -implement the Lagrangian NN paper
+                    - Gather Data
+                    - Implement different NN  
+                        - lagrangiannn
+                        - normal feed forward 
+                        - lower triangular network (Outputs Matrix with values in diagonal and below it and on top all 0 )
+                    - implement model_free_controller that gets q and q dot from model free publisher which runs inference on the network given torques
+                    - implement model_free_publisher
+                    - move_joint for testing different kp kd values
+
+

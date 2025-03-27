@@ -11,6 +11,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <robot_msgs/JointPoseStamped.h>
+#include <robot_msgs/JointEstimatesStamped.h>
 #include <hardware_interface/joint_command_interface.h>
 #include <hardware_interface/robot_hw.h>
 #include <ros/node_handle.h>
@@ -44,8 +45,12 @@ class ModelFreeController : public controller_interface::MultiInterfaceControlle
   Eigen::Vector3d position_d_;
   Eigen::Quaterniond orientation_d_;
   std::mutex position_and_orientation_d_target_mutex_;
+  std::mutex position_estimate_mutex_;
   Eigen::Vector3d position_d_target_;
   Eigen::Quaterniond orientation_d_target_;
+
+  Eigen::Matrix<double, 7, 1> m_q;
+  Eigen::Matrix<double, 7, 1> m_dq;
 
   Eigen::Matrix<double, 7, 1> q_desired;
 
@@ -54,7 +59,10 @@ class ModelFreeController : public controller_interface::MultiInterfaceControlle
 
   // Equilibrium pose subscriber
   ros::Subscriber sub_joint_pose_;
+  ros::Subscriber sub_joint_est_;
+
   void jointPoseCallback(const robot_msgs::JointPoseStampedConstPtr& msg);
+  void jointEstimateCallback(const robot_msgs::JointEstimatesStampedConstPtr& msg);
 };
 
 }  // namespace model_free_controller

@@ -113,11 +113,15 @@ bool PDGravController::init(hardware_interface::RobotHW* robot_hw,
   cartesian_stiffness_.setZero();
   cartesian_damping_.setZero();
 
-  //k_p.diagonal() << 600.0, 600.0, 600.0, 600.0, 250.0, 150.0, 50.0;
-  k_d.diagonal() << 30.0, 30.0, 30.0, 30.0, 10.0, 10.0, 5.0;
+  k_p.diagonal() << 400.0, 400.0, 400.0, 400.0, 500.0, 100.0, 20.0; // INCREASED_KP
+  // k_d.diagonal() << 60.0, 60.0, 60.0, 60.0, 20.0, 20.0, 10.0;        // INCREASED_KD
+    
+  //k_p.diagonal() << 200.0, 200.0, 200.0, 200.0, 250.0, 50.0, 20.0;  // DATA
+  k_d.diagonal() << 30.0, 30.0, 30.0, 30.0, 10.0, 10.0, 5.0;        // DATA
 
-  k_p.diagonal() << 200.0, 200.0, 200.0, 200.0, 750.0, 50.0, 20.0;
-  //k_d.diagonal() << 10.0, 10.0, 10.0, 10.0, 4.0, 4.0, 2.0;
+
+  //k_p.diagonal() << 100.0, 100.0, 100.0, 100.0, 125.0, 25.0, 10.0;  // DECREASED_KP
+  //k_d.diagonal() << 10.0, 10.0, 10.0, 10.0, 4.0, 4.0, 2.0; // DECREASED_KD
 
   return true;
 }
