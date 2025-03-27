@@ -12,7 +12,7 @@ import numpy as np
 
 pub_pose = None
 
-FILE = '/home/student19/catkin_ws/src/utilities/increased_kp/joint'
+FILE = '/home/student19/catkin_ws/src/utilities/decreased_kd/joint'
 
 BASEPOSE = JointPoseStamped()
 
