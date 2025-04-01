@@ -92,7 +92,6 @@ class PandaMotionDataset(Dataset):
 
         efforts = self._get_joints(dfs['eff'], idx)
 
-
         # TODO: get deltatime, format the information q, q_dot (2, 7)
         # TODO: format with dt and torque for easy training
 

@@ -160,8 +160,8 @@ void ModelFreeController::update(const ros::Time& /*time*/,
   Eigen::Map<Eigen::Matrix<double, 6, 7>> jacobian(jacobian_array.data());
 
   //postion and velocity obtained using the model_free controller
-  //Eigen::Map<Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
-  //Eigen::Map<Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
+  Eigen::Map<Eigen::Matrix<double, 7, 1>> q(robot_state.q.data());
+  Eigen::Map<Eigen::Matrix<double, 7, 1>> dq(robot_state.dq.data());
 
   std::array<double, 7> gravity_array = model_handle_->getGravity();
   Eigen::Map<Eigen::Matrix<double, 7, 1>> gravity(gravity_array.data());
@@ -178,26 +178,38 @@ void ModelFreeController::update(const ros::Time& /*time*/,
   Eigen::Matrix<double, 7, 1> q_error = q_desired - m_q;
   Eigen::Matrix<double, 7, 1> q_error_kped = k_p * q_error;
   Eigen::Matrix<double, 7, 1> q_dot_kded = k_d * m_dq;
-  Eigen::Matrix<double, 7, 1> u_before_grav = q_error_kped - q_dot_kded ;
+  Eigen::Matrix<double, 7, 1> u_before_grav = q_error_kped - q_dot_kded;
+
+  std::cout << "-POSITION-\n";
+  std::cout << m_q - q << '\n';
+  std::cout << "-VELOCITY-\n";
+  std::cout << m_dq - dq << '\n';
+  std::cout << "----------\n";
+  std::cout << q_error << '\n';
+
+  
   
   // aproximated mass 5 5 2 
   // length 0.3160 0.3840 0.0880 0.1070
  
   // TODO subtract gravity from final torques to get true effort?
 
+
+
   robot_msgs::JointPoseStamped msg;
-  msg.pose.j1 = u_before_grav[0]; //- gravity[0];
-  msg.pose.j2 = u_before_grav[1]; //- gravity[1];
-  msg.pose.j3 = u_before_grav[2]; //- gravity[2];
-  msg.pose.j4 = u_before_grav[3]; //- gravity[3];
-  msg.pose.j5 = u_before_grav[4]; //- gravity[4];
-  msg.pose.j6 = u_before_grav[5]; //- gravity[5];
-  msg.pose.j7 = u_before_grav[6]; //- gravity[6];
+  msg.pose.j1 = u_before_grav[0] + gravity[0];
+  msg.pose.j2 = u_before_grav[1] + gravity[1];
+  msg.pose.j3 = u_before_grav[2] + gravity[2];
+  msg.pose.j4 = u_before_grav[3] + gravity[3];
+  msg.pose.j5 = u_before_grav[4] + gravity[4];
+  msg.pose.j6 = u_before_grav[5] + gravity[5];
+  msg.pose.j7 = u_before_grav[6] + gravity[6];
 
   torque_pub_.publish(msg);
 
+  //save data directly from here for each joint for training purposes
   for (size_t i = 0; i < 7; ++i) {
-    joint_handles_[i].setCommand(u_before_grav[i]);
+    joint_handles_[i].setCommand(u_before_grav[i]); // - gravity[i]);
   }
   // TODO add gravity compensation
 }

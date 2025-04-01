@@ -30,6 +30,7 @@ class TrilNetwork(nn.Module):
             softplus_th=20,
             epsilon=1e-6,
             device="cpu",
+            dropout=None,
         ):
         """"""
         super(TrilNetwork, self).__init__()
@@ -47,6 +48,7 @@ class TrilNetwork(nn.Module):
         self.out = None
 
         self.device = device
+        self.dropout = dropout
 
         if isinstance(hidden, int):
             self._create_network_single(input_size, hidden, output_size)
@@ -75,12 +77,20 @@ class TrilNetwork(nn.Module):
     
     def _create_network_single(self, n_in: int, n_hid: int, n_out: int):
         self.layers.append(nn.Linear(n_in, n_hid, device=self.device))
+        if self.dropout is not None:
+            self.layers.append(nn.Dropout(self.dropout))
         self.out = nn.Linear(n_hid, n_out, device=self.device)
 
     def _create_network_list(self, n_in: int, hid: List[int], n_out: int):
         self.layers.append(nn.Linear(n_in, hid[0], device=self.device))
+        if self.dropout is not None:
+            self.layers.append(nn.Dropout(self.dropout))
+        
         for idx in range(1, len(hid)):
             self.layers.append(nn.Linear(hid[idx-1], hid[idx], device=self.device))
+            if self.dropout is not None:
+                self.layers.append(nn.Dropout(self.dropout))
+        
         self.out = nn.Linear(hid[-1], n_out, device=self.device)
 
 

@@ -93,7 +93,7 @@ def callback_state(msg):
     elif moving_joint == 6:
         error = np.abs(target_pose.pose.j7 - msg.q[6])
     
-    if error <= 0.005:
+    if error <= 0.01:
         arrived = True
 
     """
@@ -126,6 +126,7 @@ if __name__ == '__main__':
 
     try:
         joint_idx = int(sys.argv[1])
+        moving_joint = joint_idx
     except ValueError:
         print('provide integer for joint index')
         quit(1)
@@ -148,25 +149,28 @@ if __name__ == '__main__':
         name='/franka_state_controller/franka_states',
         data_class=FrankaState,
         callback=callback_state,
-        queue_size=10,
+        queue_size=1,
     )
     rospy.sleep(2)
 
     publish_pose(target_pose)
     while not arrived:
         rospy.sleep(1)
+    rospy.sleep(0.5)
 
-    record = True
-
+    
     with open(FILE, 'w') as csv_file:
         csv_file.write('time,q,qdot,error,target_angle\n')
+
+    record = True
+    rospy.sleep(0.5)
 
     publish_joint_pose(joint_idx, angle)
 
     while not arrived:
         rospy.sleep(1)
+    rospy.sleep(0.5)
 
-    rospy.sleep(1)
     record = False
     target_pose = deepcopy(BASEPOSE)
     publish_pose(target_pose)

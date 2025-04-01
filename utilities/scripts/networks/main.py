@@ -14,12 +14,12 @@ BASE_PATH = '/home/student19/catkin_ws/src/data'
 # BASE_PATH = '/media/mattias/73D136FD4E0A3586/datasets/panda_trajectories'
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-loss_hold = MSELoss()
+loss_hold = MSELoss(reduction='sum')
 
 def loss_func_split(x, y):
     loss_one = loss_hold(x[:, 0], y[:, 0])
     loss_two = loss_hold(x[:, 1], y[:, 1])
-    return loss_one + loss_two
+    return (loss_one + loss_two) / x.shape[0]
 
 def run():
     print('DEVICE: ' + DEVICE)
@@ -34,14 +34,14 @@ def run():
         loss_func=loss_func_split,
         acc_func=MSELoss(),
         optim_class=AdamW,
-        learning_rate=5e-4,
+        learning_rate=1e-3,
         device=DEVICE,
         dl_train=dl_train,
         dl_val=dl_val,
-        model_dir='/home/student19/catkin_ws/src/utilities/networks/models'
+        model_dir='/home/student19/catkin_ws/src/utilities/scripts/networks/models'
     )
 
-    lnn = trainer(lnn, 20)
+    lnn = trainer(lnn, 100)
 
     output = np.zeros((96, 2, 7))
     targets = np.zeros((96, 2, 7))
@@ -77,6 +77,7 @@ def run():
     for row in range(2):
         name = 'position' if row == 0 else 'velocity'
         lims = [-1, 1] if row == 0 else [-5, 5]
+        # lims = [-np.pi, np.pi] if row == 0 else [-2*np.pi, 2*np.pi]
         for col in range(7):
             ax[row][col].scatter(targets[:, row, col], output[:, row, col])
             ax[row][col].set_xlabel(f'target {name} (rad)')

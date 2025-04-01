@@ -117,10 +117,10 @@ bool PDGravController::init(hardware_interface::RobotHW* robot_hw,
   // k_d.diagonal() << 60.0, 60.0, 60.0, 60.0, 20.0, 20.0, 10.0;        // INCREASED_KD
     
   k_p.diagonal() << 200.0, 200.0, 200.0, 200.0, 250.0, 50.0, 20.0;  // DATA
-  //k_d.diagonal() << 30.0, 30.0, 30.0, 30.0, 10.0, 10.0, 5.0;        // DATA
+  // k_d.diagonal() << 30.0, 30.0, 30.0, 30.0, 10.0, 10.0, 5.0;        // DATA
 
 
-  //k_p.diagonal() << 100.0, 100.0, 100.0, 100.0, 125.0, 25.0, 10.0;  // DECREASED_KP
+  // k_p.diagonal() << 100.0, 100.0, 100.0, 100.0, 125.0, 25.0, 10.0;  // DECREASED_KP
   k_d.diagonal() << 10.0, 10.0, 10.0, 10.0, 4.0, 4.0, 2.0; // DECREASED_KD
 
   return true;

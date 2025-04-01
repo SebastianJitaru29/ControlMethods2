@@ -18,15 +18,20 @@ class LagrangianNetwork(nn.Module):
         super(LagrangianNetwork, self).__init__()
         print(device)
 
-        self.network_mass = TrilNetwork(7, 7, [128, 128], device=device)
-        self.network_dissipation = TrilNetwork(7, 7, [128, 128], device=device)
+        self.network_mass = TrilNetwork(7, 7, [40, 40, 40], device=device,
+                                        dropout=0.2)
+        self.network_dissipation = TrilNetwork(7, 7, [40, 40, 40], 
+                                               device=device, epsilon=0,
+                                               dropout=0.2)
 
         # TODO should this be 
-        self.network_ep = NeuralNetwork(7, 7, [128, 128], device=device)
+        self.network_ep = NeuralNetwork(7, 7, [40, 40, 40], device=device,
+                                        dropout=0.2)
         # network_action = NeuralNetwork(2, [7, 7], [256, 256])
 
         # TODO not an actual part of the proposed architecture
-        self.network_coriolis = NeuralNetwork(14, [7, 7], [128, 128], device=device)
+        self.network_coriolis = NeuralNetwork(14, [7, 7], [40, 40, 40], device=device,
+                                              dropout=0.2)
 
         self.lagrangian = lagrangian if lagrangian is not None \
                                      else self.arm_lagrangian
@@ -42,9 +47,12 @@ class LagrangianNetwork(nn.Module):
         q = x[:, 0]
         q_dot = x[:, 1]
 
-        mass_q = self.network_mass(q)
-        dissipation_q = self.network_dissipation(q)
-        energy_p = self.network_ep(q)
+        mass_decomp = self.network_mass(q)
+        mass_q = mass_decomp @ torch.transpose(mass_decomp, 1, 2)
+        diss_decomp = self.network_dissipation(q)
+        dissipation_q = diss_decomp @ torch.transpose(diss_decomp, 1, 2)
+
+        gravity_q = self.network_ep(q)
 
         frmt = torch.concat((q, q_dot), dim=1)
         coriolis = self.network_coriolis(frmt)
@@ -67,7 +75,7 @@ class LagrangianNetwork(nn.Module):
         q_dotdot_hat = self.lagrangian(
             mass_q=mass_q,
             coriolis=coriolis,
-            energy_p=energy_p,
+            gravity_q=gravity_q,
             dissipation_q=dissipation_q,
             q_dot=q_dot,
             torques=torques,
@@ -91,7 +99,7 @@ class LagrangianNetwork(nn.Module):
         return x_hat
     
     @staticmethod
-    def arm_lagrangian(mass_q, coriolis, energy_p,
+    def arm_lagrangian(mass_q, coriolis, gravity_q,
                        dissipation_q, q_dot, torques):
         """"""
         # TODO q_dot might need unsqueezing
@@ -102,7 +110,7 @@ class LagrangianNetwork(nn.Module):
 
         precomp = (torques
                   - cor_dot.squeeze(2)
-                  - energy_p
+                  - gravity_q
                   - diss_dot.squeeze(2))
         
         #print(precomp.shape)
